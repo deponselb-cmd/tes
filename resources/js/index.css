@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+@theme {
+  --color-brand-bg: #f8fafc;
+  --color-brand-surface: rgba(255, 255, 255, 0.7);
+  --color-brand-border: rgba(226, 232, 240, 0.8);
+  --color-brand-text: #1e293b;
+  --color-brand-text-muted: #64748b;
+  --color-brand-primary: #6366f1;
+}
+
+.theme-midnight {
+  --color-brand-bg: #030712;
+  --color-brand-surface: rgba(17, 24, 39, 0.7);
+  --color-brand-border: rgba(31, 41, 55, 0.8);
+  --color-brand-text: #f3f4f6;
+  --color-brand-text-muted: #94a3b8;
+  --color-brand-primary: #818cf8;
+}
+
+.theme-emerald {
+  --color-brand-bg: #022c22;
+  --color-brand-surface: rgba(6, 78, 59, 0.6);
+  --color-brand-border: rgba(5, 150, 105, 0.2);
+  --color-brand-text: #ecfdf5;
+  --color-brand-text-muted: #6ee7b7;
+  --color-brand-primary: #10b981;
+}
+
+.theme-rose {
+  --color-brand-bg: #450a0a;
+  --color-brand-surface: rgba(127, 29, 29, 0.6);
+  --color-brand-border: rgba(185, 28, 28, 0.2);
+  --color-brand-text: #fff1f2;
+  --color-brand-text-muted: #fca5a5;
+  --color-brand-primary: #fb7185;
+}
+
+.theme-nordic {
+  --color-brand-bg: #2e3440;
+  --color-brand-surface: rgba(59, 66, 82, 0.7);
+  --color-brand-border: rgba(76, 86, 106, 0.4);
+  --color-brand-text: #eceff4;
+  --color-brand-text-muted: #d8dee9;
+  --color-brand-primary: #88c0d0;
+}
+
+.theme-obsidian {
+  --color-brand-bg: #09090b;
+  --color-brand-surface: rgba(24, 24, 27, 0.6);
+  --color-brand-border: rgba(39, 39, 42, 0.8);
+  --color-brand-text: #fafafa;
+  --color-brand-text-muted: #a1a1aa;
+  --color-brand-primary: #ffffff;
+}
+
+.dark {
+  --color-brand-bg: #030712;
+  --color-brand-surface: rgba(17, 24, 39, 0.7);
+  --color-brand-border: rgba(31, 41, 55, 0.8);
+  --color-brand-text: #f3f4f6;
+  --color-brand-text-muted: #94a3b8;
+  --color-brand-primary: #6366f1;
+}
+
+.glass-card {
+  @apply backdrop-blur-xl bg-brand-surface border border-brand-border transition-all duration-500 shadow-lg;
+}
+
+.glass-card-hover {
+  @apply hover:scale-[1.01] hover:shadow-2xl hover:shadow-brand-primary/5 hover:border-brand-primary/20;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-brand-border);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-primary);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Realtime Animations */
+@keyframes ping-glow {
+  0% { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+.marker-ping::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  background: inherit;
+  opacity: 0.5;
+  animation: ping-glow 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  z-index: -1;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 2rem;
+  background: var(--color-brand-bg) !important;
+}
+
+/* Dark mode map tiles */
+.dark .leaflet-tile, .theme-midnight .leaflet-tile, .theme-emerald .leaflet-tile, .theme-rose .leaflet-tile, .theme-nordic .leaflet-tile, .theme-obsidian .leaflet-tile {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.dark .leaflet-popup-content-wrapper {
+  background: #111827 !important;
+  color: #f3f4f6 !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #374151;
+}
+
+.dark .leaflet-popup-tip {
+  background: #111827 !important;
+}
+
+/* Light mode map fixes */
+.leaflet-popup-content-wrapper {
+  background: white !important;
+  color: #111827 !important;
+  border-radius: 0.75rem !important;
+}
+
+.leaflet-popup-tip {
+  background: white !important;
+}
