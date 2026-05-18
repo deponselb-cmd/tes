@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celebes - ISP SaaS Dashboard with Map Locator</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js">
+    </script>
+    <!-- 🌍 Leaflet CSS & JS untuk Map Locator -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <!-- 🎯 Leaflet MarkerCluster untuk performa banyak marker -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        .gradient-border {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6, #06b6d4);
+            padding: 1px;
+            border-radius: 12px;
+        }
+        .gradient-border>div {
+            background: #0f172a;
+            border-radius: 11px;
+        }
+        .sidebar-item {
+            transition: all 0.2s;
+        }
+        .sidebar-item:hover {
+            background: rgba(99, 102, 241, 0.1);
+            padding-left: 1.25rem;
+        }
+        .sidebar-item.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-right: 3px solid #6366f1;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .status-online {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+        .status-warning {
+            background: #f59e0b;
+            box-shadow: 0 0 8px #f59e0b;
+        }
+        .status-offline {
+            background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e1;
+            transition: 0.3s;
+            border-radius: 10px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        input:checked+.toggle-slider {
+            background-color: #6366f1;
+        }
+        input:checked+.toggle-slider:before {
+            transform: translateX(20px);
+        }
+        body.light-mode {
+            background: #f9fafb;
+            color: #1f2937;
+        }
+        body.light-mode .bg-\[\#0f1629\] {
+            background: #ffffff !important;
+            border-color: #e5e7eb !important;
+        }
+        body.light-mode .bg-\[\#0a0e1a\] {
+            background: #f9fafb !important;
+        }
+        body.light-mode .border-gray-800 {
+            border-color: #e5e7eb !important;
+        }
+        body.light-mode .text-gray-400,
+        body.light-mode .text-gray-500 {
+            color: #6b7280 !important;
+        }
+        body.light-mode .text-gray-300,
+        body.light-mode .text-gray-200 {
+            color: #374151 !important;
+        }
+        body.light-mode .bg-gray-800,
+        body.light-mode .bg-gray-800\/50 {
+            background: #f3f4f6 !important;
+        }
+        body.light-mode input,
+        body.light-mode textarea,
+        body.light-mode select {
+            background: #ffffff;
+            border-color: #d1d5db;
+            color: #1f2937;
+        }
+        body.light-mode input::placeholder,
+        body.light-mode textarea::placeholder {
+            color: #9ca3af;
+        }
+        body.light-mode button {
+            color: #ffffff;
+        }
+        body.light-mode .sidebar-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-right: 3px solid #6366f1;
+            color: #4f46e5 !important;
+        }
+        body.light-mode .bg-\[\#0f1629\].rounded-xl {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        body.light-mode header.bg-\[\#0a0e1a\]\/80 {
+            background: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(12px);
+        }
+        .voucher-card {
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .voucher-card:hover {
+            transform: scale(1.03);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.3);
+            border-color: #6366f1;
+        }
+        .voucher-card.selected {
+            border-color: #6366f1 !important;
+            background: rgba(99, 102, 241, 0.2) !important;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+        }
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+        /* 🌍 Styling tambahan untuk Map Locator */
+        #map-locator-container {
+            height: calc(100vh - 140px);
+            min-height: 500px;
+        }
+        .map-wrapper {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(99, 102, 241, 0.3);
+            height: 100%;
+        }
+        .leaflet-popup-content-wrapper {
+            background: #1e293b !important;
+            color: #e2e8f0 !important;
+            border-radius: 12px !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            border: 1px solid #334155;
+        }
+        .leaflet-popup-tip {
+            background: #1e293b !important;
+        }
+        .leaflet-popup-content {
+            margin: 10px 14px !important;
+            font-size: 13px;
+        }
+        .leaflet-popup-content strong {
+            color: #a5b4fc;
+        }
+        .billing-badge-popup {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .marker-cluster-small {
+            background-color: rgba(99, 102, 241, 0.5) !important;
+        }
+        .marker-cluster-small div {
+            background-color: rgba(99, 102, 241, 0.8) !important;
+            color: white !important;
+        }
+        .marker-cluster-medium {
+            background-color: rgba(139, 92, 246, 0.5) !important;
+        }
+        .marker-cluster-medium div {
+            background-color: rgba(139, 92, 246, 0.8) !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="h-full bg-[#0a0e1a] text-gray-200 overflow-hidden">
+    <div id="app" class="h-full w-full flex">
+        <!-- SIDEBAR -->
+        <aside class="w-64 bg-[#0f1629] border-r border-gray-800 flex flex-col h-full shrink-0">
+            <div class="p-5 border-b border-gray-800">
+                <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">NetBill Pro</h1>
+                <p class="text-xs text-gray-500 mt-1">ISP Management Platform</p>
+            </div>
+            <nav class="flex-1 py-4 overflow-y-auto">
+                <div class="px-3 mb-2 text-[10px] uppercase tracking-wider text-gray-600 font-semibold">Main</div>
+                <div class="sidebar-item active flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-indigo-300" data-page="dashboard" onclick="switchPage('dashboard')"><i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="billing" onclick="switchPage('billing')"><i data-lucide="receipt" class="w-4 h-4"></i> Billing Engine</div>
+                <!-- 🌍 Menu Map Locator baru -->
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="map" onclick="switchPage('map')"><i data-lucide="map-pin" class="w-4 h-4"></i> Map Locator</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="network" onclick="switchPage('network')"><i data-lucide="wifi" class="w-4 h-4"></i> Network</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="mikrotik" onclick="switchPage('mikrotik')"><i data-lucide="server" class="w-4 h-4"></i> MikroTik</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="customers" onclick="switchPage('customers')"><i data-lucide="users" class="w-4 h-4"></i> Customers</div>
+                <div class="px-3 mt-4 mb-2 text-[10px] uppercase tracking-wider text-gray-600 font-semibold">Operations</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="tickets" onclick="switchPage('tickets')"><i data-lucide="headphones" class="w-4 h-4"></i> Support</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="voucher" onclick="switchPage('voucher')"><i data-lucide="ticket" class="w-4 h-4"></i> Voucher</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="inventory" onclick="switchPage('inventory')"><i data-lucide="package" class="w-4 h-4"></i> Inventory & POS</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="whitelabel" onclick="switchPage('whitelabel')"><i data-lucide="palette" class="w-4 h-4"></i> White-Label</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="flow" onclick="switchPage('flow')"><i data-lucide="git-branch" class="w-4 h-4"></i> Workflow</div>
+                <div class="px-3 mt-4 mb-2 text-[10px] uppercase tracking-wider text-gray-600 font-semibold">System</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="settings" onclick="switchPage('settings')"><i data-lucide="settings" class="w-4 h-4"></i> Settings</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="users" onclick="switchPage('users')"><i data-lucide="user-cog" class="w-4 h-4"></i> Users</div>
+                <div class="sidebar-item flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer text-gray-400" data-page="admin" onclick="switchPage('admin')"><i data-lucide="cpu" class="w-4 h-4"></i> Control Panel</div>
+            </nav>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="flex-1 overflow-y-auto h-full">
+            <header class="sticky top-0 z-10 bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-gray-800 px-6 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h2 id="page-title" class="text-lg font-semibold">Dashboard</h2><span class="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full pulse-dot">● Live</span>
+                </div>
+                <button onclick="toggleTheme()" id="theme-btn" class="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg transition flex items-center gap-1"><i data-lucide="moon" class="w-3 h-3"></i> Dark</button>
+            </header>
+            <div id="content-area" class="p-6 fade-in">
+            </div>
+        </main>
+    </div>
+    <div id="modal-container"></div>
+
+    <script>
+        // ========== STATE & DATA ==========
+        let customersData = JSON.parse(localStorage.getItem('customersData') || '[]');
+        let usersData = JSON.parse(localStorage.getItem('usersData') || '[]');
+        let inventoryItems = JSON.parse(localStorage.getItem('inventoryItems') || '[]');
+        let todaysSales = JSON.parse(localStorage.getItem('todaysSales') || '[]');
+        let posCart = [];
+        let isDarkMode = true;
+        let currentVoucherProfile = 'Hotspot 3 Jam - Rp 5,000';
+        let generatedVouchers = [];
+        let selectedVouchers = new Set();
+        let mapInstance = null;
+        let markerClusterGroup = null;
+        let allMapMarkers = [];
+
+        // Seed demo data if empty (dengan koordinat 🌍)
+        function seedDemoData() {
+            if (customersData.length === 0) {
+                customersData = [
+                    { id: 'cust-1', name: 'Budi Santoso', phone: '+62 812-3456-7890', plan: 'Premium 50 Mbps',
+                        status: 'active', address: 'Jl. Merdeka No. 12, Jakarta', pppoe: 'pppoe-budisantoso',
+                        start_date: '2024-01-15', lat: -6.2088, lng: 106.8456, invoice_amount: 350000,
+                    invoice_status: 'paid' },
+                    { id: 'cust-2', name: 'Siti Rahayu', phone: '+62 813-9876-5432', plan: 'Standard 30 Mbps',
+                        status: 'active', address: 'Jl. Sudirman No. 45, Bandung', pppoe: 'pppoe-sitirahayu',
+                        start_date: '2024-02-20', lat: -6.9175, lng: 107.6191, invoice_amount: 250000,
+                        invoice_status: 'pending' },
+                    { id: 'cust-3', name: 'Ahmad Hidayat', phone: '+62 811-2233-4455', plan: 'Basic 10 Mbps',
+                        status: 'isolated', address: 'Jl. Gatot Subroto No. 78, Surabaya', pppoe: 'pppoe-ahmadhidayat',
+                        start_date: '2024-03-10', lat: -7.2575, lng: 112.7521, invoice_amount: 150000,
+                        invoice_status: 'overdue' },
+                    { id: 'cust-4', name: 'Dewi Lestari', phone: '+62 814-5566-7788', plan: 'Premium 50 Mbps',
+                        status: 'pending', address: 'Jl. Diponegoro No. 90, Medan', pppoe: 'pppoe-dewilestari',
+                        start_date: '2024-04-05', lat: 3.5952, lng: 98.6722, invoice_amount: 350000,
+                    invoice_status: 'pending' },
+                    { id: 'cust-5', name: 'Rudi Hartono', phone: '+62 815-1122-3344', plan: 'Standard 30 Mbps',
+                        status: 'active', address: 'Jl. Thamrin No. 33, Semarang', pppoe: 'pppoe-rudihartono',
+                        start_date: '2024-05-01', lat: -6.9667, lng: 110.4167, invoice_amount: 250000,
+                        invoice_status: 'paid' },
+                ];
+                localStorage.setItem('customersData', JSON.stringify(customersData));
+            }
+            if (usersData.length === 0) {
+                usersData = [
+                    { id: 'user-1', name: 'Admin Utama', email: 'admin@netbill.co.id', role: 'Super Admin',
+                        status: 'active', last_login: '2025-01-20 08:30', password: '****' },
+                    { id: 'user-2', name: 'Teknisi Lapangan', email: 'teknisi@netbill.co.id', role: 'Technician',
+                        status: 'active', last_login: '2025-01-19 15:45', password: '****' },
+                    { id: 'user-3', name: 'CS Support', email: 'cs@netbill.co.id', role: 'Support', status: 'inactive',
+                        last_login: '2025-01-10 11:00', password: '****' },
+                ];
+                localStorage.setItem('usersData', JSON.stringify(usersData));
+            }
+            if (inventoryItems.length === 0) {
+                inventoryItems = [
+                    { id: 'item-1', item_name: 'Router MikroTik RB951Ui', sku: 'MTK-RB951', category: 'Hardware',
+                        quantity: 25, unit_price: 450000 },
+                    { id: 'item-2', item_name: 'Kabel UTP Cat6 1m', sku: 'CBL-UTP6-1M', category: 'Cable', quantity: 150,
+                        unit_price: 15000 },
+                    { id: 'item-3', item_name: 'POE Injector 24V', sku: 'POE-24V', category: 'Accessories', quantity: 8,
+                        unit_price: 85000 },
+                    { id: 'item-4', item_name: 'Fiber Optic Patchcord SC', sku: 'FO-SC-3M', category: 'Cable',
+                        quantity: 60, unit_price: 35000 },
+                    { id: 'item-5', item_name: 'Wireless CPE LiteBeam', sku: 'UBNT-LBE', category: 'Hardware',
+                        quantity: 5, unit_price: 1200000 },
+                ];
+                localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
+            }
+            if (todaysSales.length === 0) {
+                todaysSales = [
+                    { id: 'sale-1', sale_id: 'SALE-001234', time: '09:15', total: 485000, method: 'cash',
+                        discount: 0 },
+                    { id: 'sale-2', sale_id: 'SALE-001235', time: '11:30', total: 935000, method: 'card',
+                        discount: 15000 },
+                ];
+                localStorage.setItem('todaysSales', JSON.stringify(todaysSales));
+            }
+        }
+
+        // ========== TEMA ==========
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode', !isDarkMode);
+            const icon = document.querySelector('#theme-btn i');
+            const btnText = document.querySelector('#theme-btn');
+            if (isDarkMode) {
+                icon.setAttribute('data-lucide', 'moon');
+                btnText.innerHTML = '<i data-lucide="moon" class="w-3 h-3"></i> Dark';
+            } else {
+                icon.setAttribute('data-lucide', 'sun');
+                btnText.innerHTML = '<i data-lucide="sun" class="w-3 h-3"></i> Light';
+            }
+            localStorage.setItem('app-theme', isDarkMode ? 'dark' : 'light');
+            lucide.createIcons();
+            // Refresh peta jika sedang aktif (perbaikan render ulang)
+            if (document.getElementById('map-locator-container') && mapInstance) {
+                setTimeout(() => mapInstance.invalidateSize(), 300);
+            }
+        }
+
+        // ========== NOTIFIKASI ==========
+        function showNotification(msg, type = 'info') {
+            const el = document.createElement('div');
+            el.className =
+                `fixed top-4 right-4 px-4 py-2 rounded-lg text-sm z-50 shadow-lg transition-all ${
+            type === 'success' ? 'bg-emerald-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-indigo-500 text-white'}`;
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => { el.style.opacity = '0';
+                el.style.transform = 'translateX(20px)'; }, 2500);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        // ========== NAVIGASI ==========
+        function switchPage(page) {
+            document.querySelectorAll('.sidebar-item').forEach(el => {
+                el.classList.remove('active', 'text-indigo-300');
+                el.classList.add('text-gray-400');
+                if (el.dataset.page === page) { el.classList.add('active', 'text-indigo-300');
+                    el.classList.remove('text-gray-400'); }
+            });
+            const titles = {
+                dashboard: 'Dashboard',
+                billing: 'Billing Engine',
+                map: 'Map Locator',
+                network: 'Network',
+                mikrotik: 'MikroTik',
+                customers: 'Customers',
+                tickets: 'Support',
+                voucher: 'Voucher',
+                inventory: 'Inventory & POS',
+                whitelabel: 'White-Label',
+                flow: 'Workflow',
+                settings: 'Settings',
+                users: 'Users',
+                admin: 'Control Panel'
+            };
+            document.getElementById('page-title').textContent = titles[page] || page;
+            document.getElementById('content-area').innerHTML = renderPage(page);
+            lucide.createIcons();
+            if (page === 'customers') { renderCustomersTable();
+                updateCustomerStats(); }
+            if (page === 'users') { renderUsersTable();
+                updateUserStats(); }
+            if (page === 'inventory') { switchInvTab('inventory'); }
+            if (page === 'voucher') { renderVoucherGrid(); }
+            if (page === 'settings') { initSettings(); }
+            if (page === 'admin') { initAdminPanel(); }
+            if (page === 'billing') { initBillingPage(); }
+            if (page === 'whitelabel') { initWhitelabelPreview(); }
+            if (page === 'map') { initMapLocator(); }
+            window.scrollTo(0, 0);
+        }
+
+        // ========== RENDER HALAMAN ==========
+        function renderPage(page) {
+            const pages = {
+                dashboard: renderDashboard(),
+                billing: renderBilling(),
+                map: renderMapLocator(),
+                network: renderNetwork(),
+                mikrotik: renderMikrotik(),
+                customers: renderCustomers(),
+                tickets: renderTickets(),
+                voucher: renderVoucher(),
+                inventory: renderInventory(),
+                whitelabel: renderWhitelabel(),
+                flow: renderFlow(),
+                settings: renderSettings(),
+                users: renderUsers(),
+                admin: renderAdminPanel()
+            };
+            return pages[page] || '';
+        }
+
+        // ========== DASHBOARD ==========
+        function renderDashboard() {
+            const activeCount = customersData.filter(c => c.status === 'active').length;
+            const isolatedCount = customersData.filter(c => c.status === 'isolated').length;
+            const totalRevenue = activeCount * 350000;
+            const unpaidCount = customersData.filter(c => c.status === 'pending').length + isolatedCount;
+            return `
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="card-hover gradient-border"><div class="p-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase text-gray-500">Monthly Revenue</p><p class="text-2xl font-bold mt-1 text-white">Rp ${totalRevenue.toLocaleString('id-ID')}</p><p class="text-[10px] text-emerald-400 mt-1">↑ 12.5%</p></div><div class="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center"><i data-lucide="trending-up" class="w-5 h-5 text-indigo-400"></i></div></div></div></div>
+          <div class="card-hover gradient-border"><div class="p-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase text-gray-500">Active Customers</p><p class="text-2xl font-bold mt-1 text-white">${activeCount}</p></div><div class="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center"><i data-lucide="users" class="w-5 h-5 text-cyan-400"></i></div></div></div></div>
+          <div class="card-hover gradient-border"><div class="p-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase text-gray-500">Unpaid Invoices</p><p class="text-2xl font-bold mt-1 text-white">${unpaidCount}</p></div><div class="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center"><i data-lucide="alert-circle" class="w-5 h-5 text-amber-400"></i></div></div></div></div>
+          <div class="card-hover gradient-border"><div class="p-4"><div class="flex justify-between"><div><p class="text-[10px] uppercase text-gray-500">Isolated Users</p><p class="text-2xl font-bold mt-1 text-white">${isolatedCount}</p></div><div class="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center"><i data-lucide="shield-off" class="w-5 h-5 text-red-400"></i></div></div></div></div>
+        </div>
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+            <h3 class="text-sm font-semibold mb-4">Revenue Overview</h3>
+            <div class="flex items-end gap-2 h-40">
+              ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].map((m,i) => {
+                const h = 20 + Math.random() * 100;
+                return `<div class="flex-1 flex flex-col items-center gap-1"><div class="w-full bg-indigo-500/60 rounded-t hover:bg-indigo-400 transition-all cursor-pointer" style="height:${h}px" title="${m}: Rp ${Math.round(h*8.5)}M"></div><span class="text-[9px] text-gray-500">${m}</span></div>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+            <h3 class="text-sm font-semibold mb-4">Customer Status Distribution</h3>
+            <div class="space-y-3">
+              <div><div class="flex justify-between text-xs mb-1"><span>Active</span><span class="text-emerald-400">${activeCount}</span></div><div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-emerald-500 h-2 rounded-full progress-bar" style="width:${customersData.length>0?(activeCount/customersData.length*100):0}%"></div></div></div>
+              <div><div class="flex justify-between text-xs mb-1"><span>Isolated</span><span class="text-red-400">${isolatedCount}</span></div><div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-red-500 h-2 rounded-full progress-bar" style="width:${customersData.length>0?(isolatedCount/customersData.length*100):0}%"></div></div></div>
+              <div><div class="flex justify-between text-xs mb-1"><span>Pending</span><span class="text-amber-400">${customersData.filter(c=>c.status==='pending').length}</span></div><div class="w-full bg-gray-700 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full progress-bar" style="width:${customersData.length>0?(customersData.filter(c=>c.status==='pending').length/customersData.length*100):0}%"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">Recent Activities</h3>
+          <div class="space-y-2 text-xs">
+            ${[
+              {icon:'user-plus',color:'text-emerald-400',msg:'New customer <strong>Budi Santoso</strong> registered',time:'2 min ago'},
+              {icon:'credit-card',color:'text-indigo-400',msg:'Payment received from <strong>Siti Rahayu</strong> - Rp 350,000',time:'15 min ago'},
+              {icon:'alert-triangle',color:'text-red-400',msg:'<strong>Ahmad Hidayat</strong> isolated due to unpaid invoice',time:'1 hour ago'},
+              {icon:'package',color:'text-cyan-400',msg:'Inventory restocked: <strong>Router MikroTik</strong> (+10 units)',time:'3 hours ago'},
+              {icon:'settings',color:'text-purple-400',msg:'System backup completed successfully',time:'5 hours ago'},
+            ].map(a => `
+              <div class="flex items-center gap-3 p-2 hover:bg-gray-800/50 rounded-lg transition">
+                <i data-lucide="${a.icon}" class="w-4 h-4 ${a.color}"></i>
+                <span class="flex-1">${a.msg}</span><span class="text-gray-500 text-[10px]">${a.time}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+        }
+
+        // ========== 🌍 MAP LOCATOR (FITUR BARU) ==========
+        function renderMapLocator() {
+            return `
+        <div class="space-y-4 h-full flex flex-col">
+          <div class="flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex gap-2 flex-wrap">
+              <input type="text" id="map-search-input" placeholder="🔍 Search customer or address..." class="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-xs text-white w-64" onkeyup="filterMapMarkers()">
+              <select id="map-status-filter" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" onchange="filterMapMarkers()">
+                <option value="all">All Status</option>
+                <option value="active">✅ Active</option>
+                <option value="isolated">🚫 Isolated</option>
+                <option value="pending">⏳ Pending</option>
+              </select>
+              <select id="map-billing-filter" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" onchange="filterMapMarkers()">
+                <option value="all">All Invoices</option>
+                <option value="paid">💰 Paid</option>
+                <option value="pending">📄 Pending</option>
+                <option value="overdue">⚠ Overdue</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="resetMapView()" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="maximize" class="w-3 h-3"></i> Reset View</button>
+              <button onclick="locateNearestCustomer()" class="text-[10px] bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1"><i data-lucide="navigation" class="w-3 h-3"></i> Nearest</button>
+            </div>
+          </div>
+          <div class="flex-1 bg-[#0f1629] rounded-xl border border-gray-800 overflow-hidden relative">
+            <div id="map-locator-container" class="w-full h-full"></div>
+            <!-- Legend Overlay -->
+            <div class="absolute bottom-4 left-4 bg-[#0f1629]/90 backdrop-blur-sm border border-gray-700 rounded-lg p-3 z-[1000] text-xs space-y-1.5 shadow-lg">
+              <p class="font-semibold text-gray-300 mb-1">🗺 Legend</p>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Active & Paid</div>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> Pending Invoice</div>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Isolated / Overdue</div>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-gray-500 inline-block"></span> Inactive</div>
+            </div>
+            <!-- Summary Panel -->
+            <div class="absolute top-4 right-4 bg-[#0f1629]/90 backdrop-blur-sm border border-gray-700 rounded-lg p-3 z-[1000] text-xs shadow-lg w-48" id="map-summary-panel">
+              <p class="font-semibold text-gray-300 mb-2">📊 Billing Summary</p>
+              <div id="map-summary-content">Loading...</div>
+            </div>
+          </div>
+        </div>`;
+        }
+
+        function initMapLocator() {
+            const container = document.getElementById('map-locator-container');
+            if (!container) return;
+
+            // Hancurkan instance peta sebelumnya jika ada
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
+
+            // Inisialisasi peta (centered di Indonesia)
+            mapInstance = L.map('map-locator-container', {
+                center: [-2.5, 118.0],
+                zoom: 5,
+                zoomControl: true,
+                preferCanvas: true,
+            });
+
+            // Tile layer (dark theme)
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB',
+                subdomains: 'abcd',
+                maxZoom: 19,
+            }).addTo(mapInstance);
+
+            // Marker cluster group
+            markerClusterGroup = L.markerClusterGroup({
+                chunkedLoading: true,
+                maxClusterRadius: 50,
+                iconCreateFunction: function(cluster) {
+                    const count = cluster.getChildCount();
+                    let size = 'small';
+                    if (count > 10) size = 'medium';
+                    if (count > 50) size = 'large';
+                    return L.divIcon({
+                        html: '<div><span>' + count + '</span></div>',
+                        className: 'marker-cluster marker-cluster-' + size,
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            });
+
+            allMapMarkers = [];
+            renderAllMapMarkers();
+            updateMapSummary();
+        }
+
+        function getMarkerColor(customer) {
+            // Warna berdasarkan status dan invoice
+            if (customer.status === 'isolated') return '#ef4444'; // merah
+            if (customer.invoice_status === 'overdue') return '#ef4444'; // merah
+            if (customer.invoice_status === 'pending') return '#f59e0b'; // amber
+            if (customer.status === 'active' && customer.invoice_status === 'paid') return '#10b981'; // hijau
+            if (customer.status === 'pending') return '#f59e0b'; // amber
+            return '#6b7280'; // abu-abu default
+        }
+
+        function createCustomIcon(color) {
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background:${color};width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:pointer;transition:transform 0.2s;"></div>`,
+                iconSize: [24, 24],
+                iconAnchor: [12, 12],
+                popupAnchor: [0, -14],
+            });
+        }
+
+        function renderAllMapMarkers() {
+            if (!markerClusterGroup || !mapInstance) return;
+            markerClusterGroup.clearLayers();
+            allMapMarkers = [];
+
+            customersData.forEach(customer => {
+                if (customer.lat && customer.lng) {
+                    const color = getMarkerColor(customer);
+                    const icon = createCustomIcon(color);
+                    const marker = L.marker([customer.lat, customer.lng], { icon: icon });
+
+                    const invoiceBadge = customer.invoice_status === 'paid' ?
+                        '<span class="billing-badge-popup bg-emerald-500/20 text-emerald-300">💰 Paid</span>' :
+                        customer.invoice_status === 'pending' ?
+                        '<span class="billing-badge-popup bg-amber-500/20 text-amber-300">📄 Pending</span>' :
+                        '<span class="billing-badge-popup bg-red-500/20 text-red-300">⚠ Overdue</span>';
+
+                    const statusBadge = customer.status === 'active' ?
+                        '<span style="color:#10b981;">● Active</span>' :
+                        customer.status === 'isolated' ?
+                        '<span style="color:#ef4444;">● Isolated</span>' :
+                        '<span style="color:#f59e0b;">● Pending</span>';
+
+                    marker.bindPopup(`
+                <div style="min-width:180px;">
+                  <strong style="font-size:14px;">${customer.name}</strong><br>
+                  <span style="font-size:11px;color:#94a3b8;">${customer.address || 'No address'}</span>
+                  <hr style="border-color:#334155;margin:6px 0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>📋 ${customer.plan}</span>
+                    ${statusBadge}
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+                    <span>💵 Rp ${(customer.invoice_amount || 0).toLocaleString('id-ID')}</span>
+                    ${invoiceBadge}
+                  </div>
+                  <div style="margin-top:6px;font-size:10px;color:#64748b;">
+                    📞 ${customer.phone} | 🆔 ${customer.pppoe || 'N/A'}
+                  </div>
+                  <button onclick="focusCustomerOnMap('${customer.id}')" style="margin-top:6px;background:#6366f1;border:none;color:white;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:10px;width:100%;">📍 Zoom to Location</button>
+                </div>
+              `, { maxWidth: 250 });
+
+                    marker.customerData = customer;
+                    allMapMarkers.push(marker);
+                    markerClusterGroup.addLayer(marker);
+                }
+            });
+
+            mapInstance.addLayer(markerClusterGroup);
+        }
+
+        function filterMapMarkers() {
+            const searchTerm = (document.getElementById('map-search-input')?.value || '').toLowerCase();
+            const statusFilter = document.getElementById('map-status-filter')?.value || 'all';
+            const billingFilter = document.getElementById('map-billing-filter')?.value || 'all';
+
+            if (!markerClusterGroup || !mapInstance) return;
+            markerClusterGroup.clearLayers();
+
+            const filtered = allMapMarkers.filter(marker => {
+                const c = marker.customerData;
+                if (!c) return true;
+                const matchSearch = !searchTerm ||
+                    c.name.toLowerCase().includes(searchTerm) ||
+                    (c.address && c.address.toLowerCase().includes(searchTerm)) ||
+                    (c.pppoe && c.pppoe.toLowerCase().includes(searchTerm));
+                const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+                const matchBilling = billingFilter === 'all' || c.invoice_status === billingFilter;
+                return matchSearch && matchStatus && matchBilling;
+            });
+
+            filtered.forEach(m => markerClusterGroup.addLayer(m));
+            if (filtered.length > 0 && filtered.length < allMapMarkers.length) {
+                const group = L.featureGroup(filtered);
+                mapInstance.fitBounds(group.getBounds().pad(0.2), { maxZoom: 12 });
+            }
+            updateMapSummary(filtered);
+        }
+
+        function updateMapSummary(filteredMarkers = null) {
+            const panel = document.getElementById('map-summary-content');
+            if (!panel) return;
+            const data = filteredMarkers ? filteredMarkers.map(m => m.customerData) : customersData;
+            const total = data.length;
+            const paidCount = data.filter(c => c.invoice_status === 'paid').length;
+            const pendingCount = data.filter(c => c.invoice_status === 'pending').length;
+            const overdueCount = data.filter(c => c.invoice_status === 'overdue').length;
+            const totalRevenue = data.reduce((s, c) => s + (c.invoice_amount || 0), 0);
+
+            panel.innerHTML = `
+            <div class="space-y-1.5">
+              <div class="flex justify-between"><span>👥 Total</span><span class="font-bold">${total}</span></div>
+              <div class="flex justify-between"><span class="text-emerald-400">💰 Paid</span><span>${paidCount}</span></div>
+              <div class="flex justify-between"><span class="text-amber-400">📄 Pending</span><span>${pendingCount}</span></div>
+              <div class="flex justify-between"><span class="text-red-400">⚠ Overdue</span><span>${overdueCount}</span></div>
+              <hr class="border-gray-700 my-1">
+              <div class="flex justify-between font-bold"><span>💵 Revenue</span><span class="text-emerald-300">Rp ${totalRevenue.toLocaleString('id-ID')}</span></div>
+            </div>`;
+        }
+
+        function focusCustomerOnMap(customerId) {
+            const customer = customersData.find(c => c.id === customerId);
+            if (!customer || !customer.lat || !customer.lng || !mapInstance) return;
+            mapInstance.setView([customer.lat, customer.lng], 15, { animate: true });
+            // Buka popup marker yang sesuai
+            allMapMarkers.forEach(m => {
+                if (m.customerData && m.customerData.id === customerId) {
+                    m.openPopup();
+                }
+            });
+        }
+
+        function resetMapView() {
+            if (!mapInstance) return;
+            mapInstance.setView([-2.5, 118.0], 5, { animate: true });
+            // Reset filter
+            const searchInput = document.getElementById('map-search-input');
+            const statusFilter = document.getElementById('map-status-filter');
+            const billingFilter = document.getElementById('map-billing-filter');
+            if (searchInput) searchInput.value = '';
+            if (statusFilter) statusFilter.value = 'all';
+            if (billingFilter) billingFilter.value = 'all';
+            filterMapMarkers();
+            updateMapSummary();
+        }
+
+        function locateNearestCustomer() {
+            if (!mapInstance || allMapMarkers.length === 0) return;
+            // Coba dapatkan lokasi user via browser
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        const userLat = pos.coords.latitude;
+                        const userLng = pos.coords.longitude;
+                        let nearestMarker = null;
+                        let minDist = Infinity;
+                        allMapMarkers.forEach(m => {
+                            if (m.customerData && m.customerData.lat && m.customerData.lng) {
+                                const dist = Math.sqrt(
+                                    Math.pow(m.customerData.lat - userLat, 2) + Math.pow(m.customerData
+                                        .lng - userLng, 2)
+                                );
+                                if (dist < minDist) { minDist = dist;
+                                    nearestMarker = m; }
+                            }
+                        });
+                        if (nearestMarker && nearestMarker.customerData) {
+                            mapInstance.setView([nearestMarker.customerData.lat, nearestMarker.customerData
+                                .lng
+                            ], 14, { animate: true });
+                            nearestMarker.openPopup();
+                            showNotification('📍 Nearest customer: ' + nearestMarker.customerData.name,
+                                'info');
+                        } else {
+                            showNotification('No customers found nearby', 'error');
+                        }
+                    },
+                    () => {
+                        showNotification('Geolocation denied. Zooming to first customer.', 'error');
+                        if (allMapMarkers.length > 0 && allMapMarkers[0].customerData) {
+                            const c = allMapMarkers[0].customerData;
+                            mapInstance.setView([c.lat, c.lng], 14, { animate: true });
+                        }
+                    }
+                );
+            } else {
+                showNotification('Geolocation not supported', 'error');
+            }
+        }
+
+        // ========== BILLING ==========
+        function renderBilling() {
+            return `
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-sm font-semibold">Auto Invoice</p><p class="text-2xl font-bold mt-2">${customersData.length}</p><p class="text-[10px] text-gray-500">Generated monthly</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-sm font-semibold">Payment Gateway</p><p class="text-xs mt-2">Midtrans <span class="text-emerald-400">✓ Active</span></p><p class="text-xs">Xendit <span class="text-emerald-400">✓ Active</span></p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-sm font-semibold">Prorate Engine</p><p class="text-xs mt-2">Late fee: <span class="text-amber-400">5%</span></p><p class="text-xs">Grace period: <span class="text-indigo-400">3 days</span></p></div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5 mb-6">
+          <h3 class="text-sm font-semibold mb-4">Invoice Simulation</h3>
+          <div class="grid grid-cols-3 gap-4 mb-4">
+            <div><label class="text-[10px] text-gray-500 block mb-1">Plan</label><select id="bill-plan" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><option value="350000">Premium 50 Mbps - Rp 350,000</option><option value="250000">Standard 30 Mbps - Rp 250,000</option><option value="150000">Basic 10 Mbps - Rp 150,000</option></select></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Discount (%)</label><input type="number" id="bill-discount" value="0" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" onchange="calculateBill()"></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Tax (%)</label><input type="number" id="bill-tax" value="11" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" onchange="calculateBill()"></div>
+          </div>
+          <div class="p-4 bg-gray-800/50 rounded-lg">
+            <div class="flex justify-between text-xs mb-2"><span>Subtotal</span><span id="bill-subtotal">Rp 350,000</span></div>
+            <div class="flex justify-between text-xs mb-2"><span>Discount</span><span id="bill-discount-val">Rp 0</span></div>
+            <div class="flex justify-between text-xs mb-2"><span>Tax (PPN)</span><span id="bill-tax-val">Rp 38,500</span></div>
+            <div class="border-t border-gray-700 pt-2 flex justify-between text-sm font-bold"><span>Total</span><span id="bill-total" class="text-emerald-400">Rp 388,500</span></div>
+          </div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">Recent Invoices</h3>
+          <table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Invoice #</th><th class="text-left py-2 px-2">Customer</th><th class="text-right py-2 px-2">Amount</th><th class="text-center py-2 px-2">Status</th><th class="text-right py-2 px-2">Due Date</th></tr></thead><tbody id="billing-tbody"></tbody></table>
+        </div>`;
+        }
+
+        function initBillingPage() {
+            calculateBill();
+            const tbody = document.getElementById('billing-tbody');
+            if (tbody) {
+                const statuses = ['paid', 'pending', 'overdue'];
+                tbody.innerHTML = customersData.slice(0, 6).map((c, i) => {
+                    const st = statuses[i % 3];
+                    const badge = st === 'paid' ? 'bg-emerald-500/20 text-emerald-300' : st === 'pending' ?
+                        'bg-amber-500/20 text-amber-300' : 'bg-red-500/20 text-red-300';
+                    const amt = c.plan.includes('50') ? 350000 : c.plan.includes('30') ? 250000 : 150000;
+                    return `<tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">INV-${1000+i}</td><td class="py-2.5 px-2">${c.name}</td><td class="py-2.5 px-2 text-right">Rp ${amt.toLocaleString('id-ID')}</td><td class="py-2.5 px-2 text-center"><span class="${badge} px-2 py-0.5 rounded text-[10px]">${st}</span></td><td class="py-2.5 px-2 text-right text-gray-400">2025-02-0${i+1}</td></tr>`;
+                }).join('');
+            }
+        }
+
+        function calculateBill() {
+            const plan = parseInt(document.getElementById('bill-plan')?.value) || 350000;
+            const discount = parseFloat(document.getElementById('bill-discount')?.value) || 0;
+            const tax = parseFloat(document.getElementById('bill-tax')?.value) || 0;
+            const discountVal = Math.round(plan * discount / 100);
+            const afterDiscount = plan - discountVal;
+            const taxVal = Math.round(afterDiscount * tax / 100);
+            const total = afterDiscount + taxVal;
+            document.getElementById('bill-subtotal').textContent = 'Rp ' + plan.toLocaleString('id-ID');
+            document.getElementById('bill-discount-val').textContent = 'Rp ' + discountVal.toLocaleString('id-ID');
+            document.getElementById('bill-tax-val').textContent = 'Rp ' + taxVal.toLocaleString('id-ID');
+            document.getElementById('bill-total').textContent = 'Rp ' + total.toLocaleString('id-ID');
+        }
+
+        // ========== NETWORK ==========
+        function renderNetwork() {
+            return `
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-[10px] text-gray-500">Total Bandwidth</p><p class="text-2xl font-bold mt-1">10 Gbps</p><p class="text-[10px] text-emerald-400">↑ 98.5% uptime</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-[10px] text-gray-500">Active Nodes</p><p class="text-2xl font-bold mt-1">47</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-[10px] text-gray-500">Avg Latency</p><p class="text-2xl font-bold mt-1">12 ms</p></div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">Network Topology</h3>
+          <div class="flex justify-center">
+            <svg class="w-full max-w-lg h-64" viewBox="0 0 400 220">
+              <rect x="170" y="10" width="60" height="30" rx="8" fill="#4f46e5"/><text x="200" y="30" text-anchor="middle" fill="white" font-size="9">ISP Core</text>
+              <line x1="200" y1="40" x2="200" y2="60" stroke="#6366f1" stroke-width="2"/>
+              <rect x="140" y="60" width="120" height="28" rx="8" fill="#7c3aed"/><text x="200" y="78" text-anchor="middle" fill="white" font-size="8">Distribution Switch</text>
+              <line x1="170" y1="88" x2="80" y2="120" stroke="#8b5cf6" stroke-width="1.5"/>
+              <line x1="200" y1="88" x2="200" y2="120" stroke="#8b5cf6" stroke-width="1.5"/>
+              <line x1="230" y1="88" x2="320" y2="120" stroke="#8b5cf6" stroke-width="1.5"/>
+              <rect x="50" y="120" width="60" height="24" rx="6" fill="#06b6d4"/><text x="80" y="136" text-anchor="middle" fill="white" font-size="7">Node A</text>
+              <rect x="170" y="120" width="60" height="24" rx="6" fill="#06b6d4"/><text x="200" y="136" text-anchor="middle" fill="white" font-size="7">Node B</text>
+              <rect x="290" y="120" width="60" height="24" rx="6" fill="#06b6d4"/><text x="320" y="136" text-anchor="middle" fill="white" font-size="7">Node C</text>
+              <circle cx="80" cy="170" r="10" fill="#10b981"/><text x="80" y="173" text-anchor="middle" fill="white" font-size="7">✓</text>
+              <circle cx="200" cy="170" r="10" fill="#10b981"/><text x="200" y="173" text-anchor="middle" fill="white" font-size="7">✓</text>
+              <circle cx="320" cy="170" r="10" fill="#ef4444"/><text x="320" y="173" text-anchor="middle" fill="white" font-size="7">✕</text>
+            </svg>
+          </div>
+        </div>`;
+        }
+
+        // ========== MIKROTIK ==========
+        function renderMikrotik() {
+            return `
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-xs text-gray-500">PPPoE Active</p><p class="text-2xl font-bold">${customersData.filter(c=>c.status==='active').length}</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-xs text-gray-500">Hotspot Users</p><p class="text-2xl font-bold">${Math.floor(Math.random()*500+400)}</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-5"><p class="text-xs text-gray-500">Queue Active</p><p class="text-2xl font-bold">${customersData.length}</p></div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">MikroTik Router List</h3>
+          <table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Router Name</th><th class="text-left py-2 px-2">IP Address</th><th class="text-left py-2 px-2">Model</th><th class="text-center py-2 px-2">Status</th><th class="text-right py-2 px-2">Uptime</th></tr></thead><tbody>
+            ${[
+              {name:'Core-Router-JKT',ip:'192.168.1.1',model:'CCR1036',status:'online',uptime:'45 days'},
+              {name:'Edge-BDG',ip:'10.10.1.1',model:'RB4011',status:'online',uptime:'32 days'},
+              {name:'Node-SBY',ip:'172.16.1.1',model:'RB3011',status:'warning',uptime:'5 days'},
+            ].map(r => `<tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">${r.name}</td><td class="py-2.5 px-2 text-gray-400">${r.ip}</td><td class="py-2.5 px-2">${r.model}</td><td class="py-2.5 px-2 text-center"><span class="inline-block w-2 h-2 rounded-full ${r.status==='online'?'status-online':r.status==='warning'?'status-warning':'status-offline'}"></span> ${r.status}</td><td class="py-2.5 px-2 text-right text-gray-400">${r.uptime}</td></tr>`).join('')}
+          </tbody></table>
+        </div>`;
+        }
+
+        // ========== CUSTOMERS ==========
+        function renderCustomers() {
+            return `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-sm font-semibold">Customer Management</h3><div class="flex gap-2"><button onclick="showAddCustomerModal()" class="text-[10px] bg-indigo-500 text-white px-3 py-1.5 rounded-lg">+ Add Customer</button><button onclick="exportCustomersCSV()" class="text-[10px] bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg">📤 Export CSV</button></div></div>
+          <div class="grid grid-cols-4 gap-3 mb-4">
+            <div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-lg font-bold" id="cust-total">0</p><p class="text-[10px] text-gray-500">Total</p></div>
+            <div class="bg-emerald-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-emerald-400" id="cust-active">0</p><p class="text-[10px] text-gray-500">Active</p></div>
+            <div class="bg-red-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-red-400" id="cust-isolated">0</p><p class="text-[10px] text-gray-500">Isolated</p></div>
+            <div class="bg-amber-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-amber-400" id="cust-pending">0</p><p class="text-[10px] text-gray-500">Pending</p></div>
+          </div>
+          <div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Name</th><th class="text-left py-2 px-2">Plan</th><th class="text-left py-2 px-2">PPPoE</th><th class="text-left py-2 px-2">Status</th><th class="text-left py-2 px-2">Phone</th><th class="text-right py-2 px-2">Start Date</th><th class="text-center py-2 px-2">Actions</th></tr></thead><tbody id="customers-tbody"></tbody></table></div>
+        </div>`;
+        }
+
+        // ========== TICKETS ==========
+        function renderTickets() {
+            return `
+        <div class="grid grid-cols-3 gap-4 mb-6">
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Open Tickets</p><p class="text-xl font-bold">23</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Avg Resolution</p><p class="text-xl font-bold">4.2h</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">WhatsApp Bot</p><p class="text-xl font-bold text-emerald-400">Active</p></div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">Ticket List</h3>
+          <div class="space-y-2">
+            ${[
+              {id:'TKT-001',customer:'Budi Santoso',issue:'Internet down',priority:'High',status:'open'},
+              {id:'TKT-002',customer:'Ahmad Hidayat',issue:'Slow speed',priority:'Medium',status:'in-progress'},
+              {id:'TKT-003',customer:'Siti Rahayu',issue:'Billing inquiry',priority:'Low',status:'resolved'},
+            ].map(t => `
+              <div class="p-3 bg-gray-800/30 rounded-lg flex items-center justify-between">
+                <div><span class="text-xs font-medium">${t.id}</span> - <span class="text-xs text-gray-400">${t.customer}</span></div>
+                <div class="text-[10px] text-gray-400">${t.issue}</div>
+                <span class="text-[10px] px-2 py-0.5 rounded ${t.status==='open'?'bg-red-500/20 text-red-300':t.status==='in-progress'?'bg-amber-500/20 text-amber-300':'bg-emerald-500/20 text-emerald-300'}">${t.status}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+        }
+
+        // ========== VOUCHER ==========
+        function renderVoucher() {
+            return `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <div class="flex justify-between items-center mb-4"><h3 class="text-sm font-semibold">Voucher Editor & Print</h3><div class="flex gap-2"><button onclick="selectAllVouchers()" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg">Select All</button><button onclick="deselectAllVouchers()" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg">Deselect</button><button onclick="printSelectedVouchers()" class="text-[10px] bg-indigo-500 text-white px-3 py-1.5 rounded-lg">🖨 Print Selected (${selectedVouchers.size})</button><button onclick="printAllVouchers()" class="text-[10px] bg-emerald-600 text-white px-3 py-1.5 rounded-lg">🖨 Print All</button></div></div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div><label class="text-[10px] text-gray-500 block mb-1">Voucher Profile</label><select id="voucher-profile" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" onchange="currentVoucherProfile=this.value;renderVoucherGrid()"><option>Hotspot 3 Jam - Rp 5,000</option><option>Hotspot 6 Jam - Rp 8,000</option><option>Hotspot 12 Jam - Rp 15,000</option><option>Hotspot 24 Jam - Rp 25,000</option><option>Unlimited 7 Hari - Rp 50,000</option></select></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Quantity</label><div class="flex gap-2"><input type="number" id="voucher-qty" value="30" min="1" max="100" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><button onclick="generateVouchers()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs">Generate</button></div></div>
+          </div>
+          <div class="mb-2 flex justify-between items-center"><p class="text-[10px] text-gray-500">Click voucher to select/deselect for printing</p><p class="text-[10px] text-gray-500" id="voucher-count">${generatedVouchers.length} vouchers generated</p></div>
+          <div id="voucher-grid" class="grid grid-cols-5 gap-2 max-h-96 overflow-y-auto p-1"></div>
+        </div>`;
+        }
+
+        function generateVouchers() {
+            const qty = parseInt(document.getElementById('voucher-qty')?.value) || 30;
+            currentVoucherProfile = document.getElementById('voucher-profile')?.value || currentVoucherProfile;
+            generatedVouchers = [];
+            for (let i = 0; i < qty; i++) {
+                generatedVouchers.push({
+                    code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                    profile: currentVoucherProfile,
+                    duration: currentVoucherProfile.split(' - ')[0],
+                    price: currentVoucherProfile.split(' - ')[1] || 'Rp 5,000',
+                    id: 'v-' + Date.now() + '-' + i
+                });
+            }
+            selectedVouchers.clear();
+            renderVoucherGrid();
+            showNotification(`${qty} vouchers generated`, 'success');
+        }
+
+        function renderVoucherGrid() {
+            const grid = document.getElementById('voucher-grid');
+            const countEl = document.getElementById('voucher-count');
+            if (!grid) return;
+            if (generatedVouchers.length === 0) {
+                generateVouchers();
+                return;
+            }
+            grid.innerHTML = generatedVouchers.map((v, idx) => `
+            <div class="voucher-card p-2.5 rounded-lg border text-center ${selectedVouchers.has(v.id) ? 'selected border-indigo-500 bg-indigo-500/10' : 'border-gray-700 bg-gray-800/40 hover:border-gray-500'}" onclick="toggleVoucherSelection('${v.id}')" id="vc-${v.id}">
+              <p class="text-[11px] font-bold font-mono text-indigo-300">${v.code}</p>
+              <p class="text-[9px] text-gray-400">${v.duration}</p>
+              <p class="text-[10px] font-semibold text-emerald-400">${v.price}</p>
+              ${selectedVouchers.has(v.id) ? '<p class="text-[9px] text-indigo-400 mt-0.5">✓ Selected</p>' : ''}
+            </div>`).join('');
+            if (countEl) countEl.textContent = `${generatedVouchers.length} vouchers | ${selectedVouchers.size} selected`;
+            const printBtn = document.querySelector('button[onclick="printSelectedVouchers()"]');
+            if (printBtn) printBtn.innerHTML = `🖨 Print Selected (${selectedVouchers.size})`;
+        }
+
+        function toggleVoucherSelection(id) {
+            if (selectedVouchers.has(id)) selectedVouchers.delete(id);
+            else selectedVouchers.add(id);
+            renderVoucherGrid();
+        }
+
+        function selectAllVouchers() {
+            generatedVouchers.forEach(v => selectedVouchers.add(v.id));
+            renderVoucherGrid();
+        }
+
+        function deselectAllVouchers() {
+            selectedVouchers.clear();
+            renderVoucherGrid();
+        }
+
+        function printSelectedVouchers() {
+            const toPrint = generatedVouchers.filter(v => selectedVouchers.has(v.id));
+            if (toPrint.length === 0) { showNotification('No vouchers selected', 'error'); return; }
+            printVoucherBatch(toPrint);
+        }
+
+        function printAllVouchers() {
+            if (generatedVouchers.length === 0) { showNotification('No vouchers to print', 'error'); return; }
+            printVoucherBatch(generatedVouchers);
+        }
+
+        function printVoucherBatch(vouchers) {
+            const profile = vouchers[0].profile;
+            let html =
+                '<html><head><style>body{font-family:Arial,sans-serif;padding:15px}.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.voucher{border:2px dashed #333;border-radius:8px;padding:10px;text-align:center;page-break-inside:avoid;background:#fff;color:#000}.code{font-size:11px;font-weight:bold;font-family:monospace;color:#4f46e5}.profile{font-size:8px;color:#666}@media print{body{margin:0}}</style></head><body><h3 style="font-size:14px;margin-bottom:4px">Voucher Print</h3><p style="font-size:10px;color:#666;margin-bottom:10px">' +
+                profile + ' | Qty: ' + vouchers.length + '</p><div class="grid">';
+            vouchers.forEach(v => {
+                html +=
+                    `<div class="voucher"><div class="code">${v.code}</div><div class="profile">${v.duration}</div><div style="font-size:9px;font-weight:bold">${v.price}</div></div>`;
+            });
+            html += '</div></body></html>';
+            const w = window.open('', '', 'width=1200,height=800');
+            w.document.write(html);
+            w.document.close();
+            setTimeout(() => w.print(), 500);
+        }
+
+        // ========== INVENTORY ==========
+        function renderInventory() {
+            return `
+        <div class="flex gap-2 mb-4"><button onclick="switchInvTab('inventory')" class="inv-tab-btn active bg-indigo-500/20 text-indigo-300 px-4 py-2 rounded-lg text-sm" data-tab="inventory">📦 Inventory</button><button onclick="switchInvTab('pos')" class="inv-tab-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm" data-tab="pos">🛒 POS</button></div>
+        <div id="inv-inventory-tab" class="space-y-4">${inventoryTabHTML()}</div>
+        <div id="inv-pos-tab" class="hidden space-y-4">${posTabHTML()}</div>`;
+        }
+
+        function inventoryTabHTML() {
+            return `
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Total Items</p><p class="text-2xl font-bold" id="inv-total-items">0</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Total Value</p><p class="text-2xl font-bold text-emerald-400" id="inv-total-value">Rp 0</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Low Stock</p><p class="text-2xl font-bold text-amber-400" id="inv-low-stock">0</p></div>
+          <div class="card-hover bg-[#0f1629] rounded-xl border border-gray-800 p-4"><p class="text-[10px] text-gray-500">Sales Today</p><p class="text-2xl font-bold text-cyan-400" id="inv-sales-today">Rp 0</p></div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5 mb-6"><h3 class="text-sm font-semibold mb-4">Add New Item</h3>
+          <div class="grid grid-cols-5 gap-3">
+            <input type="text" id="inv-item-name" placeholder="Item Name" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white">
+            <input type="text" id="inv-sku" placeholder="SKU" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white">
+            <select id="inv-category" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><option>Hardware</option><option>Cable</option><option>Accessories</option></select>
+            <input type="number" id="inv-unit-price" placeholder="Unit Price" class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" step="1000">
+            <div class="flex gap-2"><input type="number" id="inv-quantity" placeholder="Qty" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><button onclick="addInventoryItem()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs">+ Add</button></div>
+          </div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><div class="flex justify-between items-center mb-4"><h3 class="text-sm font-semibold">Inventory Items</h3><div class="flex gap-2"><input type="file" id="import-inventory-file" accept=".csv" class="hidden" onchange="importInventoryCSV(this.files[0])"><button onclick="document.getElementById('import-inventory-file').click()" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg">📥 Import</button><button onclick="exportInventoryCSV()" class="text-[10px] bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-lg">📤 Export</button></div></div><table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Item Name</th><th class="text-left py-2 px-2">SKU</th><th class="text-left py-2 px-2">Category</th><th class="text-right py-2 px-2">Stock</th><th class="text-right py-2 px-2">Unit Price</th><th class="text-right py-2 px-2">Total Value</th><th class="text-center py-2 px-2">Status</th><th class="text-center py-2 px-2">Action</th></tr></thead><tbody id="inv-items-tbody"></tbody></table></div>`;
+        }
+
+        function posTabHTML() {
+            return `
+        <div class="grid grid-cols-4 gap-4">
+          <div class="col-span-2 bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">Products</h3><div class="space-y-2 max-h-96 overflow-y-auto" id="pos-products-list"></div></div>
+          <div class="col-span-2 space-y-4">
+            <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">Shopping Cart</h3><div class="space-y-2 max-h-64 overflow-y-auto mb-4" id="pos-cart-items"><p class="text-xs text-gray-500 text-center py-4">Cart is empty</p></div>
+              <div class="space-y-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div class="flex justify-between text-xs"><span>Subtotal:</span><span id="pos-subtotal">Rp 0</span></div>
+                <div class="flex justify-between text-xs"><span>Discount:</span><input type="number" id="pos-discount" placeholder="0" class="w-24 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white" onchange="calculatePOSTotal()"></div>
+                <div class="border-t border-gray-700 pt-2 flex justify-between text-sm font-bold"><span>Total:</span><span id="pos-total" class="text-emerald-400">Rp 0</span></div>
+              </div>
+            </div>
+            <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-xs font-semibold mb-3 uppercase text-gray-500">Payment Method</h3><div class="space-y-2"><label class="flex items-center gap-2 text-xs"><input type="radio" name="payment-method" value="cash" checked> 💵 Cash</label><label class="flex items-center gap-2 text-xs"><input type="radio" name="payment-method" value="card"> 💳 Card</label><label class="flex items-center gap-2 text-xs"><input type="radio" name="payment-method" value="qris"> 📱 QRIS</label></div></div>
+            <div class="flex gap-2"><button onclick="clearPOSCart()" class="flex-1 px-4 py-2 bg-red-600/20 text-red-300 rounded-lg text-xs">🗑️ Clear</button><button onclick="completePOSSale()" class="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs">✓ Complete Sale</button></div>
+          </div>
+        </div>
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5 mt-6"><h3 class="text-sm font-semibold mb-4">Today's Sales</h3><table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Sale ID</th><th class="text-left py-2 px-2">Time</th><th class="text-right py-2 px-2">Amount</th><th class="text-left py-2 px-2">Method</th><th class="text-center py-2 px-2">Receipt</th></tr></thead><tbody id="pos-sales-tbody"></tbody></table></div>`;
+        }
+
+        // ========== WHITELABEL ==========
+        function renderWhitelabel() {
+            return `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">White-Label Configuration</h3>
+          <div class="grid grid-cols-2 gap-6 mb-6">
+            <div><label class="text-[10px] text-gray-500 block mb-1">Custom Domain</label><input type="text" id="wl-domain" value="billing.myisp.co.id" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" oninput="updateWhitelabelPreview()"></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Company Name</label><input type="text" id="wl-company" value="MyISP Networks" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" oninput="updateWhitelabelPreview()"></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Primary Color</label><input type="color" id="wl-color" value="#6366f1" class="w-10 h-8 rounded" oninput="updateWhitelabelPreview()"></div>
+            <div><label class="text-[10px] text-gray-500 block mb-1">Logo Text</label><input type="text" id="wl-logo" value="MyISP" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" oninput="updateWhitelabelPreview()"></div>
+          </div>
+          <div class="border border-gray-700 rounded-xl p-6" id="whitelabel-preview" style="background:#f9fafb;color:#1f2937">
+            <div class="text-center">
+              <h2 class="text-xl font-bold" id="wl-preview-logo" style="color:#6366f1">MyISP</h2>
+              <p class="text-xs" id="wl-preview-company">MyISP Networks</p>
+              <p class="text-[10px] text-gray-500" id="wl-preview-domain">billing.myisp.co.id</p>
+              <div class="mt-4 p-4 rounded-lg border" style="border-color:#6366f1">
+                <p class="text-sm">Customer Portal Preview</p>
+                <button class="mt-2 px-4 py-2 rounded-lg text-white text-xs" id="wl-preview-btn" style="background:#6366f1">Login to Portal</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        }
+
+        function initWhitelabelPreview() { updateWhitelabelPreview(); }
+
+        function updateWhitelabelPreview() {
+            const color = document.getElementById('wl-color')?.value || '#6366f1';
+            const company = document.getElementById('wl-company')?.value || 'MyISP Networks';
+            const domain = document.getElementById('wl-domain')?.value || 'billing.myisp.co.id';
+            const logo = document.getElementById('wl-logo')?.value || 'MyISP';
+            const previewLogo = document.getElementById('wl-preview-logo');
+            const previewCompany = document.getElementById('wl-preview-company');
+            const previewDomain = document.getElementById('wl-preview-domain');
+            const previewBtn = document.getElementById('wl-preview-btn');
+            if (previewLogo) { previewLogo.textContent = logo;
+                previewLogo.style.color = color; }
+            if (previewCompany) previewCompany.textContent = company;
+            if (previewDomain) previewDomain.textContent = domain;
+            if (previewBtn) previewBtn.style.background = color;
+            const borderEl = document.querySelector('#whitelabel-preview .rounded-lg.border');
+            if (borderEl) borderEl.style.borderColor = color;
+        }
+
+        // ========== FLOW ==========
+        function renderFlow() {
+            return `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5">
+          <h3 class="text-sm font-semibold mb-4">ISP Onboarding Workflow</h3>
+          <div class="flex items-center justify-center gap-4 flex-wrap py-6">
+            ${[
+              {icon:'user-plus',color:'indigo',label:'Register'},
+              {icon:'file-check',color:'purple',label:'Verify Docs'},
+              {icon:'settings',color:'blue',label:'Setup Router'},
+              {icon:'wifi',color:'cyan',label:'Activate'},
+              {icon:'check-circle',color:'emerald',label:'Live!'},
+            ].map((s,i,a) => `
+              <div class="flex flex-col items-center gap-2">
+                <div class="w-14 h-14 rounded-xl bg-${s.color}-500/20 border border-${s.color}-500/40 flex items-center justify-center"><i data-lucide="${s.icon}" class="w-6 h-6 text-${s.color}-400"></i></div>
+                <span class="text-[10px] text-gray-500">${s.label}</span>
+              </div>
+              ${i < a.length-1 ? '<div class="w-8 h-0.5 bg-gray-600"></div>' : ''}
+            `).join('')}
+          </div>
+        </div>`;
+        }
+
+        // ========== SETTINGS ==========
+        function renderSettings() {
+            return `
+        <div class="grid grid-cols-3 gap-6">
+          <div class="col-span-1"><div class="bg-[#0f1629] rounded-xl border border-gray-800 p-4"><div class="space-y-1">
+            ${['general','billing','security','email','api','backup'].map(tab =>
+              `<button onclick="switchSettingsTab('${tab}')" class="settings-tab w-full text-left px-4 py-2.5 rounded-lg text-sm flex items-center gap-2 ${tab==='general'?'bg-indigo-500/20 text-indigo-300':'text-gray-400 hover:bg-gray-800/50'}" data-tab="${tab}"><i data-lucide="${tab==='general'?'sliders-horizontal':tab==='billing'?'credit-card':tab==='security'?'shield':tab==='email'?'mail':tab==='api'?'code':'hard-drive'}" class="w-4 h-4"></i> ${tab==='general'?'General':tab==='billing'?'Billing':tab==='security'?'Security':tab==='email'?'Email':tab==='api'?'API Keys':'Backup'}</button>`
+            ).join('')}
+          </div></div></div>
+          <div class="col-span-2">${settingsPanelsHTML()}</div>
+        </div>`;
+        }
+
+        function settingsPanelsHTML() {
+            return `
+        <div id="settings-general" class="settings-panel bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">General Settings</h3>
+          <div class="space-y-5"><div><label class="text-sm text-gray-300 block mb-2">Platform Name</label><input type="text" id="platform_name" value="NetBill Pro" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div>
+          <div><label class="text-sm text-gray-300 block mb-2">Support Email</label><input type="email" id="support_email" value="support@netbill.co.id" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div>
+          <div class="flex gap-3 pt-4"><button onclick="saveGeneralSettings()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm">Save Changes</button><button onclick="resetGeneralSettings()" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Cancel</button></div></div></div>
+        <div id="settings-billing" class="settings-panel hidden bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">Billing Settings</h3><div class="space-y-5"><div class="grid grid-cols-2 gap-4"><div><label class="text-sm text-gray-300 block mb-2">Invoice Due Days</label><input type="number" id="invoice_due_days" value="14" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div><div><label class="text-sm text-gray-300 block mb-2">Late Fee (%)</label><input type="number" id="late_fee" value="5" step="0.1" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div></div><div class="flex gap-3 pt-4"><button onclick="saveBillingSettings()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm">Save Changes</button><button onclick="resetBillingSettings()" class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Cancel</button></div></div></div>
+        <div id="settings-security" class="settings-panel hidden bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">Security Settings</h3><div class="space-y-5"><div class="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg"><div><p class="text-sm font-medium">Two-Factor Authentication (2FA)</p></div><label class="toggle-switch"><input type="checkbox" id="twofa_enabled" checked><span class="toggle-slider"></span></label></div><div class="flex gap-3 pt-4"><button onclick="saveSecuritySettings()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm">Save Changes</button><button class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Cancel</button></div></div></div>
+        <div id="settings-email" class="settings-panel hidden bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">Email Settings</h3><div class="space-y-5"><div><label class="text-sm text-gray-300 block mb-2">SMTP Host</label><input type="text" id="smtp_host" value="smtp.gmail.com" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div><div class="grid grid-cols-2 gap-4"><div><label class="text-sm text-gray-300 block mb-2">SMTP Port</label><input type="number" id="smtp_port" value="587" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"></div><div><label class="text-sm text-gray-300 block mb-2">Encryption</label><select id="smtp_encryption" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white"><option>TLS</option><option>SSL</option></select></div></div><div class="flex gap-3 pt-4"><button onclick="saveEmailSettings()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm">Save Changes</button><button class="px-6 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm">Cancel</button></div></div></div>
+        <div id="settings-api" class="settings-panel hidden bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">API Keys</h3><div class="space-y-4"><div class="p-4 bg-gray-800/50 rounded-lg"><div class="flex justify-between items-start mb-2"><p class="text-sm font-medium">Midtrans API Key</p><span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded">Connected</span></div><div class="flex items-center gap-2"><input type="password" id="midtrans_key" value="sk_live_xxxxxxxxxxxxx" class="flex-1 bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-xs text-white"><button onclick="copyToClipboard('midtrans_key')" class="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs">Copy</button></div></div></div></div>
+        <div id="settings-backup" class="settings-panel hidden bg-[#0f1629] rounded-xl border border-gray-800 p-6"><h3 class="text-lg font-bold mb-6">Backup & Restore</h3><div class="space-y-4"><div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg"><p class="text-sm text-emerald-300"><strong>Last Backup:</strong> Today, 02:15 AM</p></div><div class="grid grid-cols-2 gap-3"><button onclick="exportAllData()" class="p-4 bg-indigo-500/20 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/30 transition text-center"><i data-lucide="download" class="w-5 h-5 text-indigo-400 mx-auto mb-2"></i><p class="text-sm text-indigo-300">Export All Data</p></button><button onclick="document.getElementById('import-backup-file').click()" class="p-4 bg-purple-500/20 border border-purple-500/30 rounded-lg hover:bg-purple-500/30 transition text-center"><input type="file" id="import-backup-file" accept=".json" class="hidden" onchange="importAllData(this.files[0])"><i data-lucide="upload" class="w-5 h-5 text-purple-400 mx-auto mb-2"></i><p class="text-sm text-purple-300">Import Backup</p></button></div></div></div>`;
+        }
+
+        function switchSettingsTab(tab) {
+            document.querySelectorAll('.settings-panel').forEach(el => el.classList.add('hidden'));
+            const panel = document.getElementById('settings-' + tab);
+            if (panel) panel.classList.remove('hidden');
+            document.querySelectorAll('.settings-tab').forEach(btn => {
+                btn.classList.remove('bg-indigo-500/20', 'text-indigo-300');
+                btn.classList.add('text-gray-400', 'hover:bg-gray-800/50');
+                if (btn.dataset.tab === tab) { btn.classList.add('bg-indigo-500/20',
+                    'text-indigo-300');
+                    btn.classList.remove('text-gray-400', 'hover:bg-gray-800/50'); }
+            });
+        }
+
+        function initSettings() {
+            const genSettings = JSON.parse(localStorage.getItem('general_settings') || '{}');
+            if (genSettings.platform_name) document.getElementById('platform_name').value = genSettings
+                .platform_name;
+            if (genSettings.support_email) document.getElementById('support_email').value = genSettings
+            .support_email;
+            const billSettings = JSON.parse(localStorage.getItem('billing_settings') || '{}');
+            if (billSettings.invoice_due_days) document.getElementById('invoice_due_days').value = billSettings
+                .invoice_due_days;
+            if (billSettings.late_fee) document.getElementById('late_fee').value = billSettings.late_fee;
+            const secSettings = JSON.parse(localStorage.getItem('security_settings') || '{}');
+            if (secSettings.twofa_enabled !== undefined) document.getElementById('twofa_enabled').checked =
+                secSettings.twofa_enabled;
+            const emailSettings = JSON.parse(localStorage.getItem('email_settings') || '{}');
+            if (emailSettings.smtp_host) document.getElementById('smtp_host').value = emailSettings.smtp_host;
+            if (emailSettings.smtp_port) document.getElementById('smtp_port').value = emailSettings.smtp_port;
+        }
+
+        function saveGeneralSettings() {
+            const data = { platform_name: document.getElementById('platform_name').value, support_email: document
+                    .getElementById('support_email').value };
+            localStorage.setItem('general_settings', JSON.stringify(data));
+            showNotification('General settings saved', 'success');
+        }
+
+        function resetGeneralSettings() {
+            const saved = JSON.parse(localStorage.getItem('general_settings') || '{}');
+            document.getElementById('platform_name').value = saved.platform_name || 'NetBill Pro';
+            document.getElementById('support_email').value = saved.support_email || '';
+        }
+
+        function saveBillingSettings() {
+            const data = { invoice_due_days: document.getElementById('invoice_due_days').value, late_fee: document
+                    .getElementById('late_fee').value };
+            localStorage.setItem('billing_settings', JSON.stringify(data));
+            showNotification('Billing settings saved', 'success');
+        }
+
+        function resetBillingSettings() {
+            const saved = JSON.parse(localStorage.getItem('billing_settings') || '{}');
+            document.getElementById('invoice_due_days').value = saved.invoice_due_days || '14';
+            document.getElementById('late_fee').value = saved.late_fee || '5';
+        }
+
+        function saveSecuritySettings() {
+            const data = { twofa_enabled: document.getElementById('twofa_enabled').checked };
+            localStorage.setItem('security_settings', JSON.stringify(data));
+            showNotification('Security settings saved', 'success');
+        }
+
+        function saveEmailSettings() {
+            const data = { smtp_host: document.getElementById('smtp_host').value, smtp_port: document.getElementById(
+                    'smtp_port').value, smtp_encryption: document.getElementById('smtp_encryption').value };
+            localStorage.setItem('email_settings', JSON.stringify(data));
+            showNotification('Email settings saved', 'success');
+        }
+
+        function exportAllData() {
+            const allData = {
+                customers: customersData,
+                users: usersData,
+                inventory: inventoryItems,
+                sales: todaysSales,
+                settings: {
+                    general: JSON.parse(localStorage.getItem('general_settings') || '{}'),
+                    billing: JSON.parse(localStorage.getItem('billing_settings') || '{}'),
+                    security: JSON.parse(localStorage.getItem('security_settings') || '{}'),
+                    email: JSON.parse(localStorage.getItem('email_settings') || '{}'),
+                }
+            };
+            downloadBlob(JSON.stringify(allData, null, 2),
+                `backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+            showNotification('Backup exported', 'success');
+        }
+
+        function importAllData(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.customers) { customersData = data.customers;
+                        localStorage.setItem('customersData', JSON.stringify(customersData)); }
+                    if (data.users) { usersData = data.users;
+                        localStorage.setItem('usersData', JSON.stringify(usersData)); }
+                    if (data.inventory) { inventoryItems = data.inventory;
+                        localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems)); }
+                    if (data.sales) { todaysSales = data.sales;
+                        localStorage.setItem('todaysSales', JSON.stringify(todaysSales)); }
+                    if (data.settings) {
+                        if (data.settings.general) localStorage.setItem('general_settings', JSON.stringify(data
+                            .settings.general));
+                        if (data.settings.billing) localStorage.setItem('billing_settings', JSON.stringify(data
+                            .settings.billing));
+                        if (data.settings.security) localStorage.setItem('security_settings', JSON.stringify(data
+                            .settings.security));
+                        if (data.settings.email) localStorage.setItem('email_settings', JSON.stringify(data.settings
+                            .email));
+                    }
+                    showNotification('Backup imported successfully', 'success');
+                    switchPage('settings');
+                } catch { showNotification('Invalid backup file', 'error'); }
+            };
+            reader.readAsText(file);
+        }
+
+        function copyToClipboard(id) {
+            const input = document.getElementById(id);
+            input.type = 'text';
+            input.select();
+            navigator.clipboard.writeText(input.value).then(() => showNotification('Copied!', 'success'));
+            input.type = 'password';
+        }
+
+        // ========== USERS ==========
+        function renderUsers() {
+            return `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><div class="flex justify-between items-center mb-4"><h3 class="text-sm font-semibold">User Management</h3><div class="flex gap-2"><button onclick="showAddUserModal()" class="text-[10px] bg-indigo-500 text-white px-3 py-1.5 rounded-lg">+ Add User</button><button onclick="exportUsersCSV()" class="text-[10px] bg-gray-700 text-gray-300 px-3 py-1.5 rounded-lg">📤 Export CSV</button></div></div>
+          <div class="grid grid-cols-4 gap-3 mb-4"><div class="bg-gray-800/50 rounded-lg p-3 text-center"><p class="text-lg font-bold" id="user-total">0</p><p class="text-[10px] text-gray-500">Total</p></div><div class="bg-emerald-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-emerald-400" id="user-active">0</p><p class="text-[10px] text-gray-500">Active</p></div><div class="bg-red-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-red-400" id="user-inactive">0</p><p class="text-[10px] text-gray-500">Inactive</p></div><div class="bg-indigo-500/10 rounded-lg p-3 text-center"><p class="text-lg font-bold text-indigo-400" id="user-admin">0</p><p class="text-[10px] text-gray-500">Admin</p></div></div>
+          <table class="w-full text-xs"><thead><tr class="text-gray-500 border-b border-gray-800"><th class="text-left py-2 px-2">Name</th><th class="text-left py-2 px-2">Email</th><th class="text-left py-2 px-2">Role</th><th class="text-center py-2 px-2">Status</th><th class="text-right py-2 px-2">Last Login</th><th class="text-center py-2 px-2">Actions</th></tr></thead><tbody id="users-tbody"></tbody></table></div>`;
+        }
+
+        function showAddUserModal(userId = null) {
+            const existing = userId ? usersData.find(u => u.id === userId) : null;
+            const modal = document.createElement('div');
+            modal.id = 'add-user-modal';
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-6 w-full max-w-lg">
+          <h3 class="text-lg font-bold mb-4">${existing ? 'Edit User' : 'Add User'}</h3>
+          <form id="user-form" onsubmit="return false">
+            <input type="hidden" id="user-id" value="${existing?.id || ''}">
+            <div class="space-y-4">
+              <div><label class="text-xs text-gray-400 block mb-1">Full Name *</label><input type="text" id="user-fullname" placeholder="John Doe" value="${existing?.name || ''}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" required></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Email *</label><input type="email" id="user-email" placeholder="user@isp.com" value="${existing?.email || ''}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" required></div>
+              <div class="grid grid-cols-2 gap-4">
+                <div><label class="text-xs text-gray-400 block mb-1">Role *</label><select id="user-role" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><option value="Super Admin" ${existing?.role==='Super Admin'?'selected':''}>Super Admin</option><option value="Technician" ${existing?.role==='Technician'?'selected':''}>Technician</option><option value="Support" ${existing?.role==='Support'?'selected':''}>Support</option><option value="Viewer" ${existing?.role==='Viewer'?'selected':''}>Viewer</option></select></div>
+                <div><label class="text-xs text-gray-400 block mb-1">Status</label><select id="user-status" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><option value="active" ${existing?.status==='active'?'selected':''}>Active</option><option value="inactive" ${existing?.status==='inactive'?'selected':''}>Inactive</option></select></div>
+              </div>
+              <div><label class="text-xs text-gray-400 block mb-1">Password ${existing ? '(leave blank to keep)' : '*'}</label><input type="password" id="user-password" placeholder="Enter password" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" ${!existing?'required':''}></div>
+            </div>
+            <div class="flex gap-2 mt-5"><button onclick="saveUser()" class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs">Save User</button><button onclick="document.getElementById('add-user-modal').remove()" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs">Cancel</button></div>
+          </form>
+        </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        function saveUser() {
+            const id = document.getElementById('user-id').value || 'user-' + Date.now();
+            const name = document.getElementById('user-fullname').value.trim();
+            const email = document.getElementById('user-email').value.trim();
+            const role = document.getElementById('user-role').value;
+            const status = document.getElementById('user-status').value;
+            const password = document.getElementById('user-password').value;
+            if (!name || !email) { showNotification('Name and email required', 'error'); return; }
+            const existingIdx = usersData.findIndex(u => u.id === id);
+            const data = {
+                id,
+                name,
+                email,
+                role,
+                status,
+                last_login: existingIdx !== -1 ? usersData[existingIdx].last_login : 'Never',
+                password: password ? '****' : (existingIdx !== -1 ? usersData[existingIdx].password : '****')
+            };
+            if (existingIdx !== -1) usersData[existingIdx] = data;
+            else usersData.push(data);
+            localStorage.setItem('usersData', JSON.stringify(usersData));
+            document.getElementById('add-user-modal')?.remove();
+            renderUsersTable();
+            updateUserStats();
+            showNotification('User saved', 'success');
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = usersData.length ? '' :
+                '<tr><td colspan="6" class="text-center py-4 text-gray-500">No users found</td></tr>';
+            usersData.forEach(u => {
+                const badge = u.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                    'bg-red-500/20 text-red-300';
+                tbody.innerHTML +=
+                    `<tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">${u.name}</td><td class="py-2.5 px-2 text-gray-400">${u.email}</td><td class="py-2.5 px-2">${u.role}</td><td class="py-2.5 px-2 text-center"><span class="${badge} px-2 py-0.5 rounded text-[10px]">${u.status}</span></td><td class="py-2.5 px-2 text-right text-gray-400">${u.last_login}</td><td class="py-2.5 px-2 text-center"><button onclick="editUser('${u.id}')" class="text-indigo-400 text-xs mr-2">✏️</button><button onclick="deleteUser('${u.id}')" class="text-red-400 text-xs">🗑️</button></td></tr>`;
+            });
+        }
+
+        function updateUserStats() {
+            const totalEl = document.getElementById('user-total');
+            const activeEl = document.getElementById('user-active');
+            const inactiveEl = document.getElementById('user-inactive');
+            const adminEl = document.getElementById('user-admin');
+            if (totalEl) totalEl.textContent = usersData.length;
+            if (activeEl) activeEl.textContent = usersData.filter(u => u.status === 'active').length;
+            if (inactiveEl) inactiveEl.textContent = usersData.filter(u => u.status === 'inactive').length;
+            if (adminEl) adminEl.textContent = usersData.filter(u => u.role === 'Super Admin').length;
+        }
+
+        function editUser(id) {
+            const u = usersData.find(u => u.id === id);
+            if (!u) return;
+            showAddUserModal(id);
+        }
+
+        function deleteUser(id) {
+            if (!confirm('Delete this user?')) return;
+            usersData = usersData.filter(u => u.id !== id);
+            localStorage.setItem('usersData', JSON.stringify(usersData));
+            renderUsersTable();
+            updateUserStats();
+            showNotification('User deleted', 'success');
+        }
+
+        function exportUsersCSV() {
+            let csv = 'Name,Email,Role,Status,Last Login\n';
+            usersData.forEach(u => csv +=
+                `"${u.name}","${u.email}","${u.role}","${u.status}","${u.last_login}"\n`);
+            downloadBlob(csv, 'users.csv', 'text/csv');
+        }
+
+        // ========== ADMIN PANEL ==========
+        function renderAdminPanel() {
+            return `
+        <div class="space-y-6">
+          <div class="grid grid-cols-3 gap-4">
+            <div class="col-span-2 bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">Server Information</h3><div class="grid grid-cols-2 gap-3 text-xs">${[
+              ['Laravel Version','10.0'],['PHP Version','8.2.4'],['Database','MySQL 8.0'],['Web Server','Nginx 1.24'],['Redis','7.2 (Connected)'],['Queue Driver','Redis']
+            ].map(([k,v])=>`<div class="flex justify-between border-b border-gray-800 py-1.5"><span class="text-gray-400">${k}</span><span class="text-white font-medium">${v}</span></div>`).join('')}</div></div>
+            <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">Resource Usage</h3><div class="space-y-3">${[
+              ['Memory','64 MB / 256 MB','25%','emerald'],['CPU','12%','12%','indigo'],['Disk','45 GB / 100 GB','45%','amber']
+            ].map(([label,detail,pct,color])=>`<div><div class="flex justify-between text-[10px] mb-1"><span class="text-gray-400">${label}</span><span class="text-${color}-400">${detail}</span></div><div class="w-full bg-gray-700 rounded-full h-1.5"><div class="bg-${color}-500 h-1.5 rounded-full" style="width:${pct}"></div></div></div>`).join('')}</div></div>
+          </div>
+          <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">Cache & Maintenance</h3><div class="grid grid-cols-3 gap-3">${['clear-cache','clear-route','clear-config','clear-view','clear-compiled','restart-queue'].map(a=>`<button onclick="performAdminAction('${a}')" class="p-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 text-left transition"><p class="text-xs font-medium capitalize">${a.replace(/-/g,' ')}</p><p class="text-[10px] text-gray-500 mt-1">php artisan ${a}</p></button>`).join('')}</div></div>
+          <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-5"><h3 class="text-sm font-semibold mb-4">System Logs</h3><div class="bg-gray-900 rounded-lg p-4 font-mono text-[10px] text-gray-400 max-h-40 overflow-y-auto">${[
+            '[2025-01-20 08:30:15] INFO: Backup completed successfully',
+            '[2025-01-20 07:15:00] INFO: Invoice generation started for 2847 customers',
+            '[2025-01-19 23:59:00] WARNING: High memory usage detected (78%)',
+            '[2025-01-19 18:45:22] INFO: Payment gateway sync completed',
+          ].map(l=>`<div class="py-0.5">${l}</div>`).join('')}</div></div>
+        </div>`;
+        }
+
+        function initAdminPanel() { /* ready */ }
+
+        function performAdminAction(action) {
+            if (!confirm(`Run artisan ${action}?`)) return;
+            showNotification(`Executed: php artisan ${action}`, 'success');
+        }
+
+        // ========== CUSTOMERS CRUD ==========
+        function showAddCustomerModal(customerId = null) {
+            const existing = customerId ? customersData.find(c => c.id === customerId) : null;
+            const modal = document.createElement('div');
+            modal.id = 'add-customer-modal';
+            modal.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+        <div class="bg-[#0f1629] rounded-xl border border-gray-800 p-6 w-full max-w-2xl"><h3 class="text-lg font-bold mb-4">${existing ? 'Edit Customer' : 'Add Customer'}</h3>
+          <form id="customer-form" onsubmit="return false">
+            <input type="hidden" id="customer-id" value="${existing?.id || ''}">
+            <div class="grid grid-cols-2 gap-4 mb-5">
+              <div><label class="text-xs text-gray-400 block mb-1">Full Name *</label><input type="text" id="cust-fullname" value="${existing?.name || ''}" placeholder="John Doe" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" required></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Phone *</label><input type="tel" id="cust-phone" value="${existing?.phone || ''}" placeholder="+62 8XX" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" required></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Plan *</label><select id="cust-plan" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white" required><option value="">Select Plan</option><option value="Basic 10 Mbps" ${existing?.plan==='Basic 10 Mbps'?'selected':''}>Basic 10 Mbps</option><option value="Standard 30 Mbps" ${existing?.plan==='Standard 30 Mbps'?'selected':''}>Standard 30 Mbps</option><option value="Premium 50 Mbps" ${existing?.plan==='Premium 50 Mbps'?'selected':''}>Premium 50 Mbps</option></select></div>
+              <div><label class="text-xs text-gray-400 block mb-1">Status</label><select id="cust-status" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"><option value="active" ${existing?.status==='active'?'selected':''}>Active</option><option value="isolated" ${existing?.status==='isolated'?'selected':''}>Isolated</option><option value="pending" ${existing?.status==='pending'?'selected':''}>Pending</option></select></div>
+            </div>
+            <div class="mb-4"><label class="text-xs text-gray-400 block mb-1">Address</label><textarea id="cust-address" placeholder="Full address" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white h-20">${existing?.address || ''}</textarea></div>
+            <div class="flex gap-2"><button onclick="saveCustomer()" class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs">Save Customer</button><button onclick="document.getElementById('add-customer-modal').remove()" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-xs">Cancel</button></div>
+          </form></div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+        }
+
+        function saveCustomer() {
+            const id = document.getElementById('customer-id').value || 'cust-' + Date.now();
+            const name = document.getElementById('cust-fullname').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const plan = document.getElementById('cust-plan').value;
+            const status = document.getElementById('cust-status').value;
+            const address = document.getElementById('cust-address').value.trim();
+            if (!name || !phone || !plan) { showNotification('Please fill all required fields', 'error'); return; }
+            const data = {
+                id,
+                name,
+                phone,
+                plan,
+                status,
+                address,
+                pppoe: 'pppoe-' + name.toLowerCase().replace(/\s/g, ''),
+                start_date: new Date().toISOString().split('T')[0],
+                lat: null,
+                lng: null,
+                invoice_amount: plan.includes('50') ? 350000 : plan.includes('30') ? 250000 : 150000,
+                invoice_status: 'pending'
+            };
+            const existing = customersData.findIndex(c => c.id === id);
+            if (existing !== -1) customersData[existing] = { ...customersData[existing], ...data, id: customersData[
+                    existing].id, start_date: customersData[existing].start_date };
+            else customersData.push(data);
+            localStorage.setItem('customersData', JSON.stringify(customersData));
+            document.getElementById('add-customer-modal')?.remove();
+            renderCustomersTable();
+            updateCustomerStats();
+            showNotification('Customer saved', 'success');
+        }
+
+        function renderCustomersTable() {
+            const tbody = document.getElementById('customers-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = customersData.length ? '' :
+                '<tr><td colspan="7" class="text-center py-4 text-gray-500">No customers</td></tr>';
+            customersData.forEach(c => {
+                const badge = c.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' : (c.status ===
+                    'isolated' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300');
+                tbody.innerHTML +=
+                    `<tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">${c.name}</td><td class="py-2.5 px-2">${c.plan}</td><td class="py-2.5 px-2 text-gray-400">${c.pppoe||'-'}</td><td class="py-2.5 px-2"><span class="${badge} px-2 py-0.5 rounded text-[10px]">${c.status}</span></td><td class="py-2.5 px-2 text-gray-400">${c.phone}</td><td class="py-2.5 px-2 text-right text-gray-400">${c.start_date||'-'}</td><td class="py-2.5 px-2 text-center"><button onclick="editCustomer('${c.id}')" class="text-indigo-400 text-xs mr-2">✏️</button><button onclick="deleteCustomer('${c.id}')" class="text-red-400 text-xs">🗑️</button></td></tr>`;
+            });
+        }
+
+        function updateCustomerStats() {
+            const totalEl = document.getElementById('cust-total');
+            const activeEl = document.getElementById('cust-active');
+            const isolatedEl = document.getElementById('cust-isolated');
+            const pendingEl = document.getElementById('cust-pending');
+            if (totalEl) totalEl.textContent = customersData.length;
+            if (activeEl) activeEl.textContent = customersData.filter(c => c.status === 'active').length;
+            if (isolatedEl) isolatedEl.textContent = customersData.filter(c => c.status === 'isolated').length;
+            if (pendingEl) pendingEl.textContent = customersData.filter(c => c.status === 'pending').length;
+        }
+
+        function editCustomer(id) {
+            const c = customersData.find(c => c.id === id);
+            if (!c) return;
+            showAddCustomerModal(id);
+        }
+
+        function deleteCustomer(id) {
+            if (!confirm('Delete this customer?')) return;
+            customersData = customersData.filter(c => c.id !== id);
+            localStorage.setItem('customersData', JSON.stringify(customersData));
+            renderCustomersTable();
+            updateCustomerStats();
+            showNotification('Customer deleted', 'success');
+        }
+
+        function exportCustomersCSV() {
+            let csv = 'Name,Phone,Plan,Status,PPPoE,Start Date\n';
+            customersData.forEach(c => csv +=
+                `"${c.name}","${c.phone}","${c.plan}","${c.status}","${c.pppoe||''}","${c.start_date||''}"\n`);
+            downloadBlob(csv, 'customers.csv', 'text/csv');
+        }
+
+        // ========== INVENTORY CRUD ==========
+        function addInventoryItem() {
+            const name = document.getElementById('inv-item-name')?.value.trim();
+            const sku = document.getElementById('inv-sku')?.value.trim();
+            if (!name || !sku) { showNotification('Item name and SKU required', 'error'); return; }
+            const item = {
+                id: 'item-' + Date.now(),
+                item_name: name,
+                sku: sku,
+                category: document.getElementById('inv-category')?.value || 'Hardware',
+                quantity: parseInt(document.getElementById('inv-quantity')?.value) || 0,
+                unit_price: parseFloat(document.getElementById('inv-unit-price')?.value) || 0
+            };
+            inventoryItems.push(item);
+            localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
+            renderInventoryTable();
+            updateInventoryStats();
+            ['inv-item-name', 'inv-sku', 'inv-quantity', 'inv-unit-price'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            showNotification('Item added', 'success');
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inv-items-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = inventoryItems.length ? '' :
+                '<tr><td colspan="8" class="text-center py-4 text-gray-500">No items</td></tr>';
+            inventoryItems.forEach(i => {
+                const lowStock = i.quantity <= 10;
+                tbody.innerHTML +=
+                    `<tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">${i.item_name}</td><td class="py-2.5 px-2 text-gray-400">${i.sku}</td><td class="py-2.5 px-2 text-gray-400">${i.category}</td><td class="py-2.5 px-2 text-right">${i.quantity}</td><td class="py-2.5 px-2 text-right">Rp ${i.unit_price.toLocaleString('id-ID')}</td><td class="py-2.5 px-2 text-right">Rp ${(i.quantity * i.unit_price).toLocaleString('id-ID')}</td><td class="py-2.5 px-2 text-center"><span class="${lowStock ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/20 text-emerald-300'} px-2 py-0.5 rounded text-[10px]">${lowStock ? '⚠ Low' : '✓ OK'}</span></td><td class="py-2.5 px-2 text-center"><button onclick="deleteInventoryItem('${i.id}')" class="text-red-400 text-xs">🗑️</button></td></tr>`;
+            });
+        }
+
+        function updateInventoryStats() {
+            const totalEl = document.getElementById('inv-total-items');
+            const valueEl = document.getElementById('inv-total-value');
+            const lowEl = document.getElementById('inv-low-stock');
+            const salesEl = document.getElementById('inv-sales-today');
+            if (totalEl) totalEl.textContent = inventoryItems.length;
+            const totalValue = inventoryItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+            if (valueEl) valueEl.textContent = 'Rp ' + totalValue.toLocaleString('id-ID');
+            if (lowEl) lowEl.textContent = inventoryItems.filter(i => i.quantity <= 10).length;
+            if (salesEl) salesEl.textContent = 'Rp ' + todaysSales.reduce((s, sale) => s + sale.total, 0).toLocaleString(
+                'id-ID');
+        }
+
+        function deleteInventoryItem(id) {
+            if (!confirm('Delete this item?')) return;
+            inventoryItems = inventoryItems.filter(i => i.id !== id);
+            localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
+            renderInventoryTable();
+            updateInventoryStats();
+            showNotification('Item deleted', 'success');
+        }
+
+        function exportInventoryCSV() {
+            let csv = 'Item Name,SKU,Category,Quantity,Unit Price\n';
+            inventoryItems.forEach(i => csv +=
+                `"${i.item_name}","${i.sku}","${i.category}",${i.quantity},${i.unit_price}\n`);
+            downloadBlob(csv, 'inventory.csv', 'text/csv');
+        }
+
+        function importInventoryCSV(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const rows = e.target.result.split('\n').slice(1);
+                let count = 0;
+                rows.forEach(row => {
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    const name = (cols[0] || '').replace(/"/g, '').trim();
+                    const sku = (cols[1] || '').replace(/"/g, '').trim();
+                    if (name && sku) {
+                        inventoryItems.push({
+                            id: 'item-' + Date.now() + '-' + count,
+                            item_name: name,
+                            sku: sku,
+                            category: (cols[2] || 'Hardware').replace(/"/g, '').trim(),
+                            quantity: parseInt(cols[3]) || 0,
+                            unit_price: parseFloat(cols[4]) || 0
+                        });
+                        count++;
+                    }
+                });
+                localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
+                renderInventoryTable();
+                updateInventoryStats();
+                showNotification(`Imported ${count} items`, 'success');
+            };
+            reader.readAsText(file);
+        }
+
+        // ========== POS ==========
+        function switchInvTab(tab) {
+            const invTab = document.getElementById('inv-inventory-tab');
+            const posTab = document.getElementById('inv-pos-tab');
+            if (invTab) invTab.classList.toggle('hidden', tab !== 'inventory');
+            if (posTab) posTab.classList.toggle('hidden', tab !== 'pos');
+            document.querySelectorAll('.inv-tab-btn').forEach(b => {
+                b.classList.toggle('bg-indigo-500/20', b.dataset.tab === tab);
+                b.classList.toggle('text-indigo-300', b.dataset.tab === tab);
+                b.classList.toggle('bg-gray-700', b.dataset.tab !== tab);
+                b.classList.toggle('text-gray-300', b.dataset.tab !== tab);
+            });
+            if (tab === 'inventory') { renderInventoryTable();
+                updateInventoryStats(); }
+            if (tab === 'pos') { renderPOSProducts();
+                renderPOSCart();
+                calculatePOSTotal();
+                renderSalesHistory(); }
+        }
+
+        function renderPOSProducts() {
+            const container = document.getElementById('pos-products-list');
+            if (!container) return;
+            const available = inventoryItems.filter(i => i.quantity > 0);
+            container.innerHTML = available.length ? available.map(i => `
+            <div onclick="addToCart('${i.id}')" class="p-3 bg-gray-800/50 rounded-lg cursor-pointer hover:bg-gray-800 border border-gray-700 transition">
+              <div class="flex justify-between items-start"><p class="text-xs font-medium text-white">${i.item_name}</p><span class="text-[9px] bg-gray-700 px-1.5 py-0.5 rounded text-gray-400">${i.quantity} left</span></div>
+              <p class="text-sm font-bold text-emerald-400 mt-1">Rp ${i.unit_price.toLocaleString('id-ID')}</p>
+            </div>`).join('') : '<p class="text-xs text-gray-500 text-center py-4">No products available</p>';
+        }
+
+        function addToCart(itemId) {
+            const item = inventoryItems.find(i => i.id === itemId);
+            if (!item || item.quantity <= 0) return;
+            const existing = posCart.find(i => i.id === itemId);
+            if (existing) { if (existing.qty < item.quantity) existing.qty++; } else posCart.push({ ...item,
+                qty: 1 });
+            renderPOSCart();
+            calculatePOSTotal();
+        }
+
+        function renderPOSCart() {
+            const container = document.getElementById('pos-cart-items');
+            if (!container) return;
+            container.innerHTML = posCart.length ? posCart.map((item, idx) => `
+            <div class="p-2 bg-gray-800/50 rounded-lg flex justify-between items-center gap-2">
+              <div class="flex-1"><p class="text-xs font-medium text-white">${item.item_name}</p><p class="text-[10px] text-gray-500">Rp ${item.unit_price.toLocaleString('id-ID')} × <input type="number" value="${item.qty}" min="1" max="${item.quantity}" class="w-12 bg-gray-700 border border-gray-600 rounded px-1 py-0.5 text-[10px] text-white" onchange="updateCartQty(${idx}, this.value)"></p></div>
+              <div class="text-right"><p class="text-xs font-bold text-cyan-400">Rp ${(item.unit_price * item.qty).toLocaleString('id-ID')}</p></div>
+              <button onclick="removeFromCart(${idx})" class="text-red-400 hover:text-red-300 text-xs">✕</button>
+            </div>`).join('') : '<p class="text-xs text-gray-500 text-center py-4">Cart is empty</p>';
+        }
+
+        function updateCartQty(idx, qty) {
+            const val = parseInt(qty);
+            if (isNaN(val) || val < 1) { posCart[idx].qty = 1; } else if (val > posCart[idx].quantity) { posCart[idx]
+                    .qty = posCart[idx].quantity; } else { posCart[idx].qty = val; }
+            renderPOSCart();
+            calculatePOSTotal();
+        }
+
+        function removeFromCart(idx) { posCart.splice(idx, 1);
+            renderPOSCart();
+            calculatePOSTotal(); }
+
+        function calculatePOSTotal() {
+            const subtotal = posCart.reduce((s, i) => s + i.unit_price * i.qty, 0);
+            const discount = parseFloat(document.getElementById('pos-discount')?.value) || 0;
+            const total = Math.max(0, subtotal - discount);
+            const subtotalEl = document.getElementById('pos-subtotal');
+            const totalEl = document.getElementById('pos-total');
+            if (subtotalEl) subtotalEl.textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
+            if (totalEl) totalEl.textContent = 'Rp ' + total.toLocaleString('id-ID');
+        }
+
+        function clearPOSCart() { posCart = [];
+            renderPOSCart();
+            calculatePOSTotal(); }
+
+        function completePOSSale() {
+            if (!posCart.length) { showNotification('Cart is empty', 'error'); return; }
+            const discount = parseFloat(document.getElementById('pos-discount')?.value) || 0;
+            const subtotal = posCart.reduce((s, i) => s + i.unit_price * i.qty, 0);
+            const total = Math.max(0, subtotal - discount);
+            const methodEl = document.querySelector('input[name="payment-method"]:checked');
+            const method = methodEl ? methodEl.value : 'cash';
+            const sale = {
+                id: 'sale-' + Date.now(),
+                sale_id: 'SALE-' + Date.now().toString().slice(-8),
+                time: new Date().toLocaleTimeString('id-ID'),
+                total,
+                method,
+                discount
+            };
+            todaysSales.unshift(sale);
+            posCart.forEach(ci => {
+                const item = inventoryItems.find(i => i.id === ci.id);
+                if (item) item.quantity = Math.max(0, item.quantity - ci.qty);
+            });
+            localStorage.setItem('inventoryItems', JSON.stringify(inventoryItems));
+            localStorage.setItem('todaysSales', JSON.stringify(todaysSales));
+            posCart = [];
+            renderPOSCart();
+            renderPOSProducts();
+            updateInventoryStats();
+            renderSalesHistory();
+            calculatePOSTotal();
+            const discEl = document.getElementById('pos-discount');
+            if (discEl) discEl.value = '';
+            showNotification('Sale completed! Total: Rp ' + total.toLocaleString('id-ID'), 'success');
+        }
+
+        function renderSalesHistory() {
+            const tbody = document.getElementById('pos-sales-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = todaysSales.length ? todaysSales.map(s => `
+            <tr class="border-b border-gray-800/50"><td class="py-2.5 px-2">${s.sale_id}</td><td class="py-2.5 px-2 text-gray-400">${s.time}</td><td class="py-2.5 px-2 text-right text-emerald-400 font-medium">Rp ${s.total.toLocaleString('id-ID')}</td><td class="py-2.5 px-2"><span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">${s.method}</span></td><td class="py-2.5 px-2 text-center"><button onclick="printReceipt('${s.sale_id}')" class="text-cyan-400 text-xs hover:underline">🖨 Print</button></td></tr>`
+            ).join('') : '<tr><td colspan="5" class="text-center py-4 text-gray-500">No sales today</td></tr>';
+        }
+
+        function printReceipt(saleId) {
+            const sale = todaysSales.find(s => s.sale_id === saleId);
+            if (!sale) return;
+            const w = window.open('', '', 'width=350,height=500');
+            w.document.write(`
+        <html><head><style>body{font-family:monospace;padding:15px;font-size:12px;color:#000}hr{border:0;border-top:1px dashed #999}h3{text-align:center;margin:0}.total{font-size:16px;font-weight:bold}@media print{body{margin:0}}</style></head><body>
+          <h3>RECEIPT</h3><p style="text-align:center">NetBill Pro</p><hr>
+          <p>Sale ID: ${sale.sale_id}</p><p>Time: ${sale.time}</p><p>Method: ${sale.method.toUpperCase()}</p><hr>
+          <p class="total">Total: Rp ${sale.total.toLocaleString('id-ID')}</p><hr><p style="text-align:center">Thank you!</p>
+        </body></html>`);
+            w.document.close();
+            setTimeout(() => w.print(), 400);
+        }
+
+        // ========== HELPER ==========
+        function downloadBlob(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        // ========== INISIALISASI ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            seedDemoData();
+            if (localStorage.getItem('app-theme') === 'light') {
+                isDarkMode = false;
+                document.body.classList.add('light-mode');
+                const btnText = document.querySelector('#theme-btn');
+                if (btnText) btnText.innerHTML = '<i data-lucide="sun" class="w-3 h-3"></i> Light';
+            }
+            switchPage('dashboard');
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
